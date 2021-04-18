@@ -1,6 +1,8 @@
 # GoPro_ESP32_TFT_Touch-Control
 Allows control and monitoring of four cameras at the same time
 
+Tested with GoPro Hero 5 black an Hero 8 black
+
 <img src="https://raw.githubusercontent.com/sepp89117/GoPro_ESP32_TFT_Touch-Control/main/show.jpg">
 
 Using TFT_eSPI from https://github.com/Bodmer/TFT_eSPI <br>
