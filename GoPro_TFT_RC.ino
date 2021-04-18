@@ -7,10 +7,10 @@
 
 //--------------------- GoPro MAC and IP declarations ------------------
 //---change these to yours----------------------------------------------
-uint8_t Cam1Mac[6] = {0x04, 0x41, 0x69, 0x4F, 0x0F, 0x4B};
-uint8_t Cam2Mac[6] = {0x04, 0x41, 0x69, 0x5E, 0x4A, 0x33};
-uint8_t Cam3Mac[6] = {0x04, 0x41, 0x69, 0x5F, 0x11, 0x39};
-uint8_t Cam4Mac[6] = {0x04, 0x41, 0x69, 0x5F, 0x72, 0x39};
+uint8_t Cam1Mac[6] = {0xD4, 0x32, 0x60, 0x6D, 0x11, 0xE3}; //HERO-8 //MAC of cam "M-040-01" = 0x04, 0x41, 0x69, 0x4F, 0x0F, 0x4B
+uint8_t Cam2Mac[6] = {0x04, 0x41, 0x69, 0x5E, 0x4A, 0x33}; //HERO-5 "M-040-02"
+uint8_t Cam3Mac[6] = {0x04, 0x41, 0x69, 0x5F, 0x11, 0x39}; //HERO-5 "M-040-03"
+uint8_t Cam4Mac[6] = {0x04, 0x41, 0x69, 0x5F, 0x72, 0x39}; //HERO-5 "M-040-04"
 //---don't change the rest----------------------------------------------
 
 //Program variables ----------------------------------------------------
@@ -89,7 +89,7 @@ void setup() {
 
   Serial.begin(115200);
 
-  //testTouch(); //uncomment for touch calibration
+  //calibrateTouch(); //uncomment for touch calibration
   uint16_t calData[5] = { 220, 3479, 332, 3466, 1 }; //comment for touch calibration
   tft.setTouch(calData); //comment for touch calibration
 
@@ -136,22 +136,21 @@ void checkTouch() {
 
   if (y > 208 && tft.getTouchRawZ() >= 800) { //is in buttons hight
     if (x <= 78) { //button 1 (rec)
-      if (isRecording) { // stop
+      if (isRecording) { // stop record pressed
         sendToCam(SH0, 14);
         tft.fillRect(27, 212, 23, 23, TFT_BLACK);
         tft.fillCircle(27 + 11, 212 + 11, 11, TFT_RED); //rec dot
         isRecording = !isRecording;
         delay(250); //avoid bouncing
-      } else { // start
+      } else { // start record pressed
         sendToCam(SH1, 14);
-        if(currentMode == 0){ //if video mode draw stop rect
+        if (currentMode == 0) { //if video mode draw stop rect
           tft.fillRect(27, 212, 23, 23, TFT_BLACK);
           tft.fillRect(29, 214, 20, 20, TFT_RED); //stop rect
           isRecording = !isRecording;
         }
         delay(250); //avoid bouncing
       }
-      
     } else if (x >= 81 && x <= 81 + 78) { //button 2 (default mode)
       sendToCam(CMd, 14);
       delay(250); //avoid bouncing
@@ -166,13 +165,11 @@ void checkTouch() {
         }
 
         stopAP();
-
         tft.setTextColor(TFT_RED);  tft.setTextSize(2);
         tft.fillRect(242, 210, 76, 29, TFT_BLACK);  //Button 4 clear
         tft.setCursor(263, 217); tft.print("on");  //Button 4 text
       } else {
         startAP();
-
         tft.setTextColor(TFT_GREEN);  tft.setTextSize(2);
         tft.fillRect(242, 210, 76, 29, TFT_BLACK);  //Button 4 clear
         tft.setCursor(263, 217); tft.print("off");  //Button 4 text
@@ -182,7 +179,7 @@ void checkTouch() {
   }
 }
 
-void testTouch() { //calibration
+void calibrateTouch() { //calibration
   uint16_t calData[5];
   uint8_t calDataOK = 0;
 
@@ -344,12 +341,12 @@ void stopAP() {
   Udp.stop();
   WiFi.softAPdisconnect(true);
 
-    for (int i = 0; i < maxCams; i++) {
-      if (cams[i].getIp() != 0) {
-        cams[i].resetIp();
-        resetCamSection(i); //reset screen for cam i
-      }
+  for (int i = 0; i < maxCams; i++) {
+    if (cams[i].getIp() != 0) {
+      cams[i].resetIp();
+      resetCamSection(i); //reset screen for cam i
     }
+  }
 
   rcOn = false;
 
@@ -389,12 +386,15 @@ void onIpAssign(WiFiEvent_t evt, WiFiEventInfo_t info) {
 
   for (int i = 0; i < adapter_sta_list.num; i++) {
     tcpip_adapter_sta_info_t station = adapter_sta_list.sta[i];
+    Serial.print("MAC ");
+    serialPrintHex(station.mac, 6);
+    Serial.println(" connecting...");
 
     for (int x = 0; x < maxCams; x++) {
       if (memcmp(station.mac, cams[x].getMac(), 6) == 0) {
         if (cams[x].getIp() != station.ip.addr) {
           cams[x].lastResponse = millis() + 5000;
-          cams[x].setIp(station.ip.addr);          
+          cams[x].setIp(station.ip.addr);
           numConnected++;
           Serial.print("Cam ");
           Serial.print(x + 1);
@@ -413,11 +413,11 @@ void onIpAssign(WiFiEvent_t evt, WiFiEventInfo_t info) {
 void sendToCam(uint8_t* req, int numBytes) {
   //send to each cam if online
   uint8_t sendings = 0;
-  for (int i = 0; i < maxCams; i++) {    
+  for (int i = 0; i < maxCams; i++) {
     if (cams[i].getIp() != 0) {
       Serial.print("Sending to cam ");
-      Serial.println(i+1);
-      
+      Serial.println(i + 1);
+
       req[9] = (uint8_t)highCounter;
       req[10] = (uint8_t)lowCounter;
 
@@ -447,7 +447,7 @@ void sendToCam(uint8_t* req, int numBytes) {
 
 void sendToSingleCam(uint8_t* req, int numBytes, uint32_t camIp) {
   Serial.println("Sending welcome to new cam");
-  
+
   req[9] = (uint8_t)highCounter;
   req[10] = (uint8_t)lowCounter;
 
