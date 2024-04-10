@@ -79,10 +79,10 @@ void setup() {
 
   WiFi.mode(WIFI_AP); // Set WiFi in AP mode
 
-  esp_wifi_set_mac(ESP_IF_WIFI_AP, &rcMac[0]);
+    esp_wifi_set_mac(WIFI_IF_AP, &rcMac[0]);  
 
-  WiFi.onEvent(onIpAssign, WiFiEvent_t::SYSTEM_EVENT_AP_STAIPASSIGNED);
-  WiFi.onEvent(onStationDisconnected, WiFiEvent_t::SYSTEM_EVENT_AP_STADISCONNECTED);
+  WiFi.onEvent(onIpAssign, WiFiEvent_t::ARDUINO_EVENT_WIFI_AP_STAIPASSIGNED);
+  WiFi.onEvent(onStationDisconnected, WiFiEvent_t::ARDUINO_EVENT_WIFI_AP_STADISCONNECTED);
 
   WiFi.disconnect(true);
   WiFi.softAPdisconnect(true);
@@ -357,7 +357,7 @@ void stopAP() {
 //WiFi functions
 void onStationDisconnected(WiFiEvent_t evt, WiFiEventInfo_t info) {
   for (int i = 0; i < maxCams; i++) {
-    if (memcmp(info.sta_disconnected.mac, cams[i].getMac(), 6) == 0) {
+    if (memcmp(info.wifi_sta_disconnected.bssid, cams[i].getMac(), 6) == 0) {
       if (cams[i].getIp() != 0) {
         cams[i].resetIp();
         resetCamSection(i);
